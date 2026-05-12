@@ -148,21 +148,36 @@
     window.addEventListener("mouseup", dragEnd);
     window.addEventListener("mousemove", drag);
 
-    // পাসওয়ার্ড ভেরিফিকেশন (Pass: SX_PAPA)
+    // পাসওয়ার্ড ভেরিফিকেশন (Pass: 7246hi)
     function checkKey() {
         const pass = document.getElementById("accessKey").value;
         if(pass === "7246hi") {
             document.getElementById("loginUI").style.display = "none";
             document.getElementById("predictionUI").style.display = "block";
-            generateSignal(); // সাথে সাথে প্রথম সিগন্যাল দেখাবে
-            start30SecTimer();
+            updateMarketData();
+            startMainEngine();
         } else {
             alert("ভুল পাসওয়ার্ড মামা!");
         }
     }
 
-    function generateSignal() {
-        // নতুন র‍্যান্ডম সিগন্যাল জেনারেশন
+    function updateMarketData() {
+        let now = new Date();
+        let year = now.getFullYear();
+        let month = (now.getMonth() + 1).toString().padStart(2, '0');
+        let day = now.getDate().toString().padStart(2, '0');
+        
+        // ৩০ সেকেন্ড মার্কেটের লজিক:
+        // ১ দিনে মোট ১৪৪০ মিনিট। প্রতি মিনিটে ২টি রাউন্ড।
+        // সিরিয়াল নম্বর = (ঘন্টা * ১২০) + (মিনিট * ২) + (সেকেন্ড >= ৩০ হলে ১, না হলে ০) + ১
+        let totalMinutes = (now.getHours() * 60) + now.getMinutes();
+        let periodSerial = (totalMinutes * 2) + (now.getSeconds() >= 30 ? 2 : 1);
+        
+        // পিরিয়ড ফরম্যাট: YYYYMMDD + ১০ + ৪ ডিজিটের সিরিয়াল
+        let fullPeriod = `${year}${month}${day}01${periodSerial.toString().padStart(4, '0')}`;
+        document.getElementById("p_id").innerText = `PERIOD: ${fullPeriod}`;
+
+        // র‍্যান্ডম সিগন্যাল জেনারেশন
         const res = Math.random() > 0.5 ? "BIG" : "SMALL";
         const num = Math.floor(Math.random() * 10);
         const color = (num === 0 || num === 5) ? "VIOLET" : (num % 2 === 0 ? "RED" : "GREEN");
@@ -170,23 +185,19 @@
         document.getElementById("p_val").innerText = res;
         document.getElementById("p_val").className = "res-val " + res.toLowerCase();
         document.getElementById("p_num_color").innerText = `NUM: ${num} | COLOR: ${color}`;
-        
-        // পিরিয়ড আইডি আপডেট (কারেন্ট টাইম অনুযায়ী)
-        let now = new Date();
-        let periodId = now.getFullYear().toString() + (now.getMonth()+1).toString().padStart(2, '0') + now.getDate().toString().padStart(2, '0') + "1000" + (Math.floor(Math.random() * 900) + 100);
-        document.getElementById("p_id").innerText = `PERIOD: ${periodId}`;
     }
 
-    function start30SecTimer() {
+    function startMainEngine() {
         setInterval(() => {
-            let seconds = new Date().getSeconds();
-            let remaining = 30 - (seconds % 30); // ৩০ সেকেন্ডের রিসেট লজিক
+            let now = new Date();
+            let seconds = now.getSeconds();
+            let remaining = 30 - (seconds % 30);
             
             document.getElementById("timer").innerText = "00:" + (remaining < 10 ? "0" + remaining : remaining);
             
-            // যখন ৩০ সেকেন্ড শেষ হবে (অর্থাৎ যখন remaining ৩০ বা ১ হবে নতুন সিগন্যাল আসবে)
+            // যখন ৩০ বা ০ সেকেন্ডে পৌঁছাবে, তখন পিরিয়ড আইডি ১ বাড়বে এবং নতুন সিগন্যাল আসবে
             if (remaining === 30) {
-                generateSignal();
+                updateMarketData();
             }
         }, 1000);
     }
